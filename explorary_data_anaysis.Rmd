@@ -1,0 +1,23 @@
+---
+title: "Exploratory Analysis on the data"
+output: html_notebook
+---
+
+```{r Set up}
+library(tidyverse)
+library(readtext)
+setwd("./New_York_Times_Data")
+```
+
+```{r}
+filelist = list.files(pattern = " .*.txt")
+textlist = readtext(filelist)
+
+
+```
+
+```{r}
+file = "ProQuestDocuments-2019-04-14 (2).txt"
+text <- readtext(file)
+```
+

@@ -1,0 +1,24 @@
+---
+title: "topic_model"
+output: html_notebook
+---
+
+```{r librarys}
+library(quanteda)
+library(tidyverse)
+library(topicmodels)
+library(stm)
+```
+
+
+```{r read in data}
+# read in dfm from dictionary_method_7000_articles
+doc_features <- readRDS("dfm.rds")
+```
+
+```{r create stm model}
+out <- convert(doc_features, to = "stm", docvars = docvars(doc_features))
+stm.out <- stm(out$documents, out$vocab, K=8)
+  
+```
+
