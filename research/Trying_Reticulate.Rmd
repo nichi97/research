@@ -1,0 +1,25 @@
+---
+title: "Trying_Reticulate"
+output: html_notebook
+---
+
+```{r}
+#install.packages("reticulate")
+library(reticulate)
+use_python("/usr/local/bin/python")
+```
+
+```{python}
+import numpy as np
+
+x = np.arange(4).reshape((2,2))
+
+p_ls = []
+for i in range(5):
+  p_ls.append(i)
+  
+
+
+
+```
+

@@ -1,0 +1,162 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup}
+library(quanteda)
+library(readtext)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+```
+
+We first read in the metadata into dataframe, df_metadata
+```{r read in the metadata and the data}
+setwd("./metadata")
+ls <- list.files()
+metadata <- lapply(ls, function(f){
+  doc <- read_xls(f) 
+  
+})
+df_metadata <- bind_rows(metadata)
+
+# Check on which ones does not have 500 documents
+for(i in seq(1,length(metadata))){
+  if(nrow(metadata[[i]]) != 500){
+    print(i)
+  }
+}
+
+  
+  
+
+```
+
+Note, number 38 only have 498, and number 9 only 499
+
+They are ProQuestDocuments-2019-05-03 (5), and ProQuestDocuments-2019-05-10 (10)
+
+We then read in the text data into a data frame, break each articles by horizontal line.
+```{r read in the text data}
+setwd("./data")
+
+divide_text <- function(f){
+  
+  sep_doc <- corpus_segment(f, "____________________________________________________________")
+  sep_doc <- corpus(sep_doc[-ndoc(sep_doc)])
+  
+}
+
+ls <- list.files()
+
+sep_text <- lapply(ls, function(f){
+  readtext(f) %>% 
+    corpus() %>% 
+    divide_text()
+  
+})
+
+res <- sep_text[[1]]
+for (i in 2:length(ls)){
+  res = res + sep_text[[i]]
+}
+final_docs <- res
+
+# find out discrepency between metadata and data number
+for (i in 1:length(ls)){
+  if(ndoc(sep_text[[i]]) != nrow(metadata[[i]])){
+    print(i)
+  }
+}
+
+
+
+```
+```{r fix number 38}
+sample <- sep_text[[38]]
+meta_sample <- metadata[[38]]
+
+text <- sep_text[[38]][1]
+
+ls = list()
+for(i in seq(1,ndoc(sample))){
+  ls[i] <- str_extract(sample[i], "[:print:]+") 
+}
+
+meta_title <- meta_sample$Title
+
+for(i in seq(1:500)){
+    print(i)
+    print(meta_title[i])
+    print(ls[[i]])
+  }
+    
+}
+```
+
+Now, we have successfully cleaned all the metadata and data. We just need to put them together by assigning the doc vars
+
+```{r combine metadata and data}
+docvars(final_docs, "title") <- df_metadata$Title
+docvars(final_docs, "date") <- df_metadata$entryDate
+docvars(final_docs, "pages") <- df_metadata$pages
+```
+
+
+```{r Dictionary method}
+doc_feature <- dfm(final_docs, remove = stopwords("English"), remove_punct = TRUE)
+saveRDS(doc_feature, "dfm.rds")
+AFINN <- read.csv("./AFINN/AFINN-111.txt", sep = '\t', header = F)
+
+vocab <- 
+doc_feature %>% 
+  dfm_weight() %>% 
+  colnames()
+
+# Trim the AFINN so that only the ones that they will fit each other
+weight_mat <- dfm_weight(doc_feature)
+dfm1 <- weight_mat[,vocab%in%AFINN$V1]
+dfm1 <- dfm1[,order(colnames(dfm1))]
+AFINN <- AFINN[AFINN$V1%in%vocab,]
+AFINN <- AFINN[order(AFINN$V1),]
+weight <- AFINN$V2%*%t(dfm1)
+
+# summing only the words that counts
+docLength <- rowSums(dfm1)
+norm_weight <- as.vector(weight) / unlist(docLength)
+final_docs$senti <- norm_weight
+docvars(final_docs, "sentiment") <- norm_weight 
+head(final_docs[final_docs$senti > 1])
+head(final_docs[final_docs$senti < -1])
+
+df_docvars <- docvars(final_docs)
+df_docvars_by_date <- 
+  df_docvars %>% 
+  group_by(date) %>% 
+  summarise(senti = mean(sentiment, na.rm=TRUE))
+
+
+
+df_dates <- df_docvars$date
+
+df_dates_ym <- 
+df_docvars %>% mutate(month = month(mdy(df_dates)), year = year(mdy(df_dates)))
+
+
+df_docvars_glue_ym <- 
+  df_dates_ym %>% 
+  mutate(ym = ymd(paste(df_dates_ym$year, df_dates_ym$month, "01", sep="-"))) %>% 
+  group_by(ym) %>% 
+  summarise(senti = mean(sentiment, na.rm=TRUE)) 
+  
+ggplot(df_docvars_glue_ym, aes(ym, senti)) +
+  geom_line()
+
+
+
+```
+
+Interesting point: Generally, the sentiment is positive
+But also, we have 6.4
+

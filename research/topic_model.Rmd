@@ -1,0 +1,68 @@
+---
+title: "topic_model"
+output: html_notebook
+---
+
+```{r librarys}
+library(quanteda)
+library(tidyverse)
+library(topicmodels)
+library(stm)
+```
+
+
+```{r read in data}
+# read in dfm from dictionary_method_7000_articles
+doc_features <- readRDS("dfm.rds")
+corpus <- readRDS("text_corpus.rds")
+```
+
+```{r create stm model}
+out <- convert(doc_features, to = "stm", docvars = docvars(doc_features))
+stm.out <- stm(out$documents, out$vocab, K=16)
+saveRDS(stm.out, "stm_16.rds")
+# saveRDS(stm.out, "stm_8.rds")
+  
+```
+
+```{r check out the content in each model}
+# stm.out <- readRDS("stm_8.rds")
+labelTopics(stm.out)
+```
+For the 8_topic model: 
+topic1: music, performance
+topic2: cambodia, Russia
+topic3: ??
+topic4: Food, local
+topic5: book...?
+topic6: book
+topic7: Issue with Tabit
+topic8: company and business
+
+For the 16_topic model:
+
+Topic1: Marriage news
+Topic2: Full text unavailable
+Topic3: Best sellers
+Topic4: Travel, advertisement
+Topic5: FIX THIS! No full text but only links and stuff 2019-05-10 (5)
+Topic6: Art -- music and play
+Topic7: Sport, Olympics
+Topic8: Immigrant, travel, Chinatown
+Topic9: International relationship -- south east Asia, Cambodia 
+Topic10: International relationship -- Soviet Union -> Iraq War, global containment 
+Topic11: Weaponary, machinary
+Topic12: 
+
+
+
+```{r lookinto the meaning of these topics}
+corpus_df <- as.data.frame(corpus$documents)
+text <- corpus_df$texts
+findThoughts(stm.out, text, topics = 12, n = 50)
+cloud(stm.out, 8)
+findTopic(stm.out, "dalai", type = "frex")
+
+
+```
+
