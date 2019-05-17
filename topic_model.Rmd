@@ -1,0 +1,106 @@
+---
+title: "topic_model"
+output: html_notebook
+---
+
+```{r librarys,echo=FALSE, include=FALSE}
+library(quanteda)
+library(tidyverse)
+library(topicmodels)
+library(stm)
+library(lubridate)
+library(readr)
+```
+
+
+```{r read in data}
+# read in dfm from dictionary_method_7000_articles
+doc_features <- readRDS("dfm.rds")
+corpus <- readRDS("text_corpus.rds")
+```
+
+```{r create stm model}
+out <- convert(doc_features, to = "stm", docvars = docvars(doc_features))
+stm.out <- stm(out$documents, out$vocab, K=16)
+# saveRDS(stm.out, "stm_16.rds")
+# saveRDS(stm.out, "stm_8.rds")
+  
+```
+
+For the 16_topic model:
+
+Topic1: Marriage news    
+Topic2: Full text unavailable    
+Topic3: Best sellers    
+Topic4: Travel, advertisement    
+Topic5: FIX THIS! No full text but only links and stuff 2019-05-10 (5)    
+Topic6: Art -- music and play    
+Topic7: Sport, Olympics    
+Topic8: Immigrant, travel, Chinatown    
+Topic9: International relationship -- south east Asia, Cambodia   
+Topic10: International relationship -- Soviet Union -> Iraq War, global containment   
+Topic11: Weaponary, machinary   
+Topic12: Medicine and education   
+Topic13: Index and table of content   
+Topic14: Food and recipe   
+Topic15: Communist Party issue   
+Topic16: Business and trade   
+
+
+
+```{r lookinto the meaning of these topics}
+stm.out <- readRDS("stm_16.rds")
+corpus_df <- as.data.frame(corpus$documents)
+text <- corpus_df$texts
+findThoughts(stm.out, text, topics = 2, n = 100)
+cloud(stm.out, 8)
+findTopic(stm.out, "dalai", type = "frex")
+```
+
+```{r Visualization of the relationship between topics}
+plot.topicCorr(topicCorr(stm.out))
+```
+
+```{r}
+plot.STM(stm.out)
+```
+
+```{r add in the month}
+dates <- corpus_df$date
+dates <- mdy(dates)
+i_month <- month(dates)
+i_year <- year(dates)
+ym <- 
+  paste(i_year, i_month, "01", sep = "-") %>% 
+  ymd() %>% 
+  as.Date()
+  
+
+corpus_df <- 
+corpus_df %>% 
+  mutate(ym = ym) 
+
+```
+
+
+```{r Plot the plots about international relationship}
+
+prep <- estimateEffect(c(1:16) ~ s(ym), stm.out, corpus_df)
+plot(prep, covariate = "ym", topic = c(1))
+plot.estimateEffect(prep, covariate = "ym", method = "continuous", topic=c(9,10,11))
+
+```
+
+```{r Ploting all the topics}
+plot.estimateEffect(prep, covariate = "ym", method = "continuous", topic=c(1:16))
+```
+
+```{r}
+plot.estimateEffect(prep, covariate = "ym", method = "continuous", topic=c(15,16))
+```
+
+Topic 15 -- Party issue
+Topic 16 -- Business
+
+
+
